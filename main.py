@@ -6,7 +6,11 @@ from PIL import Image
 import mss
 import pygetwindow as gw
 import easyocr
-from datetime import datetime, timedelta
+from datetime import datetime
+
+import os
+import shutil
+
 
 log = datetime.now().strftime("dia%d%m%y.log")
 logging.basicConfig(
@@ -37,6 +41,8 @@ class Wagertool():
                 self.janela = janela
                 break
 
+        if os.path.exists('./debug_screen') is False:
+            os.mkdir('./debug_screen')
 
     def captura_tela(self):
         """
@@ -46,9 +52,6 @@ class Wagertool():
 
         # Coleta as coordenadas da janela
         left, top, width, height = wtool.left, wtool.top, wtool.width, wtool.height
-        try:
-            self.centralizar_ladders()
-        except: pass
 
         # Captura apenas a área da janela usando mss
         with mss.mss() as sct:
@@ -260,6 +263,8 @@ class Wagertool():
             logging.info(log_msg)
             return odd_migalha
 
+        return 'media dinheiro em back é maior q em lay'
+
 
     def scalping_under_acima_2_20(self) -> str:
         """
@@ -374,6 +379,10 @@ class Wagertool():
 
 
 def rotina(w):
+    try:
+        w.centralizar_ladders()
+    except: 
+        pass
     w.captura_tela()
     w.extrai_valores()
     if w.aovivo:
@@ -384,6 +393,8 @@ def rotina(w):
                 w.entrada(odd=odd, tipo='back')
             odd = w.migalha()
             print(f'Migalinha: {odd}')
+            if odd == 'media dinheiro em back é maior q em lay':
+                shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("migalha_%d%m_%H%M%S.png")}')
             if odd in w.ladder.keys():
                 w.entrada(odd=odd, tipo='lay')
 
@@ -395,6 +406,7 @@ while True:
         rotina(w)
     except Exception as error:
         logging.error(error)
+        shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("ERRO_%d%m_%H%M%S.png")}')
         logging.info('procurando nova janela para trabalhar...')
         time.sleep(15)
         w = Wagertool()
