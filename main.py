@@ -48,6 +48,12 @@ class Wagertool():
         """
             Abre o mercado por enquanto vamos fazer só um mercado e tira print
         """
+        if self.janela not in gw.getAllTitles():
+            log_msg = f'Janela fechada: {self.janela}'
+            logging.warning(log_msg)
+            print(log_msg)
+            raise RuntimeError('janela fechada!')
+
         wtool = gw.getWindowsWithTitle(self.janela)[0]
 
         # Coleta as coordenadas da janela
@@ -80,6 +86,7 @@ class Wagertool():
             - Configuração da escada: altura da linha e tamanho do texto igual a 30
         """
         self.ladder = {} # reseta ladder antes de atualizar
+        self.centralizar_escada = None # reseta. Se caso a ladder se movimente
 
         # Carregar imagem original colorida
         img = cv2.imread("captura_janela.png")
@@ -185,14 +192,17 @@ class Wagertool():
                 if back_atual[0] >= 6 and back_atual[0] < 10: fracao_da_odd = 20
                 if back_atual[0] >= 10 and back_atual[0] < 20: fracao_da_odd = 50
 
-
                 gap = int(((round(lay_atual[0] - back_atual[0], 2)) * 100) / fracao_da_odd) - 1
                 logging.info(f"Back @{back_atual[0]}\nLay @{lay_atual[0]}\nGAP de {gap} tick(s)\n----------------")
                 back_atual, lay_atual, self.gap = back_atual, lay_atual, gap
                 # reduzindo análise para 3 ticks acima e 3 abaixo
-                self.odds_back = [list(ladder)[back_atual[1] - i] for i in range(4)]
-                self.odds_lay = [list(ladder)[lay_atual[1] + i] for i in range(4)]
-                return True
+                try:
+                    self.odds_back = [list(ladder)[back_atual[1] - i] for i in range(4)]
+                    self.odds_lay = [list(ladder)[lay_atual[1] + i] for i in range(4)]
+                    return True
+                except IndexError:
+                    logging.warning('Necessário ter no minimo 3 odds em cada resistência de back/lay')
+                    return False
 
 
     def click_cashout(self):
@@ -386,17 +396,33 @@ def rotina(w):
     w.captura_tela()
     w.extrai_valores()
     if w.aovivo:
-        if w.atualiza_informacoes_da_ladder():
-            odd = w.scalping_under_acima_2_20()
-            print(f'Scalping Under: {odd}')
-            if odd in w.ladder.keys():
-                w.entrada(odd=odd, tipo='back')
-            odd = w.migalha()
-            print(f'Migalinha: {odd}')
-            if odd == 'media dinheiro em back é maior q em lay':
-                shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("migalha_%d%m_%H%M%S.png")}')
-            if odd in w.ladder.keys():
-                w.entrada(odd=odd, tipo='lay')
+        try:
+            atualizou_ladder = w.atualiza_informacoes_da_ladder()
+        except TypeError:
+            logging.warning('Não foi possível atualizar a ladder')
+            atualizou_ladder = False
+        
+        if atualizou_ladder:
+            # direcionar mercado para uma estratégia apenas
+            media_odds_ladder = (float(list(self.ladder)[0]) + float(list(self.ladder)[-1])) / 2
+
+            if media_odds_ladder <= 1.3: # migalha
+                odd = w.migalha()
+                print(f'Migalinha: {odd}')
+                if odd == 'media dinheiro em back é maior q em lay':
+                    shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("migalha_%d%m_%H%M%S.png")}')
+                if odd in w.ladder.keys():
+                    w.entrada(odd=odd, tipo='lay')
+
+            elif media_odds_ladder > 2 and media_odds_ladder <= 7: # migalha
+                odd = w.scalping_under_acima_2_20()
+                print(f'Scalping Under: {odd}')
+                if odd in w.ladder.keys():
+                    w.entrada(odd=odd, tipo='back')
+
+            else:
+                print('Sem estratégia no momento...')
+                time.sleep(15)
 
 w = Wagertool()
 self = w
@@ -405,8 +431,10 @@ while True:
     try:
         rotina(w)
     except Exception as error:
-        logging.error(error)
-        shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("ERRO_%d%m_%H%M%S.png")}')
+        if "'Wagertool' object has no attribute 'janela'" not in str(error) or "janela fechada!" not in str(error):
+            logging.critical(error)
+            shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("ERRO_%d%m_%H%M%S.png")}')
+        
+        time.sleep(5)
         logging.info('procurando nova janela para trabalhar...')
-        time.sleep(15)
         w = Wagertool()

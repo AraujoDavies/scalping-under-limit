@@ -11,3 +11,7 @@ Letra Z habilitada para remover apostas contra
 Desabilitar opção de centrar escadas automaticamente
 
 Configurar tickoffset com cash distribuido
+
+Não exibir **nenhum Rodapé**
+
+entrada sempre com **responsabilidade**
