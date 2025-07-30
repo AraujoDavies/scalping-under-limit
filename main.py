@@ -251,9 +251,9 @@ class Wagertool():
             if self.gap == 0: # se tiver sem gap checar melhor odd
                 primeira_resistencia = peso_dinheiro_back[1]
                 if primeira_resistencia < media_dinheiro_back * 0.80:
-                    entrada = peso_dinheiro_lay[1] # self.odds_lay[1]
+                    entrada = 1
                 else:
-                    entrada = peso_dinheiro_lay[2] # self.odds_lay[2]
+                    entrada = 2 # qual odd deixa nossa entrada + segura
                 log_msg = f'Migalha sem GAP - Propondo LAY a @{self.odds_lay[entrada]} - {self.janela}'
                 odd_migalha = self.odds_lay[entrada]
 
