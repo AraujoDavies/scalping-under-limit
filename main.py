@@ -266,8 +266,8 @@ class Wagertool():
 
             # saber se já está proposto...
             if self.ladder[odd_migalha]['back'] > 0 and self.ladder[odd_migalha]['lay'] > 0:
-                log_msg = "Já está proposto no migalha"
-                return 'Já está proposto!'
+                log_msg = f"Já está proposto no migalha a {odd_migalha}"
+                return log_msg
 
             print(log_msg)
             logging.info(log_msg)
