@@ -1,0 +1,28 @@
+[project]
+name = "wagertool-scalper"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "mrrobnote",email = "daviesaraujo@hotmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pyautogui (>=0.9.54,<0.10.0)",
+    "pillow (>=11.3.0,<12.0.0)",
+    "mss (>=10.0.0,<11.0.0)",
+    "pygetwindow (>=0.0.9,<0.0.10)",
+    "easyocr (>=1.7.2,<2.0.0)",
+    "isort (>=6.0.1,<7.0.0)",
+    "opencv-python-headless (>=4.12.0.88,<5.0.0.0)",
+    "matplotlib (>=3.10.3,<4.0.0)",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^9.4.0"
+
