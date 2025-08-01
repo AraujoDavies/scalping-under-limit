@@ -412,6 +412,7 @@ class Wagertool:
             eixo_y = self.centralizar_escada[1] / 2
 
             pyautogui.moveTo(x=eixo_x, y=eixo_y)
+            time.sleep(3) # espera pra validar se mouse não está em uso no momento
             if int(eixo_x) == int(pyautogui.position().x) and int(eixo_y) == int(
                 pyautogui.position().y
             ):
