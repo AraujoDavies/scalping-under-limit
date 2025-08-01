@@ -15,3 +15,11 @@ Configurar tickoffset com cash distribuido
 Não exibir **nenhum Rodapé**
 
 entrada sempre com **responsabilidade**
+
+# Login e configuração da ladder são feitos manualmente.
+
+Seguir imagens do diretório `imgs`
+
+# Resultados...
+
+Será q deu GREEN ?? 👀

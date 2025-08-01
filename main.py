@@ -225,7 +225,9 @@ class Wagertool:
         try:
             cashout = pyautogui.locateOnScreen("./imgs/cashout.jpg", confidence=0.8)
             pyautogui.click(cashout)  # evitar clicks fora da área certa
-            time.sleep(5)
+            time.sleep(30)
+            pyautogui.press("c")
+            pyautogui.press("z")
         except:
             return False
 
