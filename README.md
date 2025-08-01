@@ -1,6 +1,6 @@
 # Configurações do Wagertool para que o robô funcione!
 
-Ter setado uma stake no valor '123456789' (para identificar o mercado)
+Ter setado uma stake no valor '123456789' (Ajuda identificar o mercado)
 
 Configuração da escada: altura da linha e tamanho do texto igual a **30**
 

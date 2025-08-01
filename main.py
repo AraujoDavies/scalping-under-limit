@@ -72,7 +72,7 @@ class Wagertool():
 
         # # Carrega a imagem e faz OCR
         img = Image.frombytes("RGB", sct_img.size, sct_img.rgb)
-        img.save("captura_janela.png")
+        img.save("./imgs/captura_janela.png")
         logging.info('capturou imagem do mercado...')
 
 
@@ -90,7 +90,7 @@ class Wagertool():
         self.centralizar_escada = None # reseta. Se caso a ladder se movimente
 
         # Carregar imagem original colorida
-        img = cv2.imread("captura_janela.png")
+        img = cv2.imread("./imgs/captura_janela.png")
 
         # Redimensionar para aumentar chance de leitura
         resized = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
@@ -208,7 +208,7 @@ class Wagertool():
 
     def click_cashout(self):
         try:
-            cashout = pyautogui.locateOnScreen('cashout.jpg', confidence=0.8)
+            cashout = pyautogui.locateOnScreen('./imgs/cashout.jpg', confidence=0.8)
             pyautogui.click(cashout) # evitar clicks fora da área certa
             time.sleep(5)
         except:
@@ -370,7 +370,7 @@ class Wagertool():
 
     def centralizar_ladders(self):
         try:
-            tickoffset = pyautogui.locateOnScreen('tickoffset.jpg', confidence=0.8)
+            tickoffset = pyautogui.locateOnScreen('./imgs/tickoffset.jpg', confidence=0.8)
             # print('TICKOFFSET localizado!')
         except:
             logging.warning('TICKOFFSET desativado!!!')
@@ -411,7 +411,7 @@ def rotina(w):
                 odd = w.migalha()
                 print(f'Migalinha: {odd}')
                 # if odd == 'media dinheiro em back é maior q em lay':
-                #     shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("migalha_%d%m_%H%M%S.png")}')
+                #     shutil.copy('./imgs/captura_janela.png', f'./debug_screen/{datetime.now().strftime("migalha_%d%m_%H%M%S.png")}')
                 if odd in w.ladder.keys():
                     w.entrada(odd=odd, tipo='lay')
 
@@ -437,7 +437,7 @@ while True:
         w = Wagertool()
     except Exception as error:
         logging.critical(error)
-        shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("ERRO_%d%m_%H%M%S.png")}')
+        shutil.copy('./imgs/captura_janela.png', f'./debug_screen/{datetime.now().strftime("ERRO_%d%m_%H%M%S.png")}')
         time.sleep(5)
         logging.info('procurando nova janela para trabalhar...')
         w = Wagertool()
