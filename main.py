@@ -35,6 +35,7 @@ class Wagertool():
         self.centralizar_escada = None # seta coordenadas para centralizar ladder
         self.aovivo = False # verifica se o mercado está aberto
 
+        self.janela = "N/A"
         for janela in gw.getAllTitles():
             if 'ESCADA:' in janela:
                 print(f'Trabalhando no mercado: {janela}')
@@ -52,7 +53,7 @@ class Wagertool():
             log_msg = f'Janela fechada: {self.janela}'
             logging.warning(log_msg)
             print(log_msg)
-            raise RuntimeError('janela fechada!')
+            raise RuntimeError(log_msg)
 
         wtool = gw.getWindowsWithTitle(self.janela)[0]
 
@@ -404,13 +405,13 @@ def rotina(w):
         
         if atualizou_ladder:
             # direcionar mercado para uma estratégia apenas
-            media_odds_ladder = (float(list(self.ladder)[0]) + float(list(self.ladder)[-1])) / 2
+            media_odds_ladder = (float(list(w.ladder)[0]) + float(list(w.ladder)[-1])) / 2
 
             if media_odds_ladder <= 1.3: # migalha
                 odd = w.migalha()
                 print(f'Migalinha: {odd}')
-                if odd == 'media dinheiro em back é maior q em lay':
-                    shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("migalha_%d%m_%H%M%S.png")}')
+                # if odd == 'media dinheiro em back é maior q em lay':
+                #     shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("migalha_%d%m_%H%M%S.png")}')
                 if odd in w.ladder.keys():
                     w.entrada(odd=odd, tipo='lay')
 
@@ -430,11 +431,13 @@ self = w
 while True:
     try:
         rotina(w)
+    except RuntimeError as error:
+        time.sleep(5)
+        logging.info('procurando nova janela para trabalhar...')
+        w = Wagertool()
     except Exception as error:
-        if "'Wagertool' object has no attribute 'janela'" not in str(error) or "janela fechada!" not in str(error):
-            logging.critical(error)
-            shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("ERRO_%d%m_%H%M%S.png")}')
-        
+        logging.critical(error)
+        shutil.copy('./captura_janela.png', f'./debug_screen/{datetime.now().strftime("ERRO_%d%m_%H%M%S.png")}')
         time.sleep(5)
         logging.info('procurando nova janela para trabalhar...')
         w = Wagertool()
