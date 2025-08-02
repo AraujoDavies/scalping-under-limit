@@ -40,7 +40,8 @@ class Wagertool:
         self.janela = "N/A"
         for janela in gw.getAllTitles():
             if "ESCADA:" in janela:
-                print(f"Trabalhando no mercado: {janela}")
+                print(f"Trabalhando no mercado: {janela} (PRESSIONE ENTER APÓS AJUSTAR)")
+                input('ENTER')
                 self.janela = janela
                 break
 
@@ -53,7 +54,6 @@ class Wagertool:
         """
         if self.janela not in gw.getAllTitles():
             log_msg = f"Janela fechada: {self.janela}"
-            logging.warning(log_msg)
             print(log_msg)
             raise RuntimeError(log_msg)
 
@@ -392,10 +392,10 @@ class Wagertool:
         if tipo == "lay":
             pyautogui.press("z")
 
-        msg = f"Propôs a {odd} - {self.janela}"
+        msg = f"{self.janela}: Propôs a @{odd}"
         print(msg)
         logging.warning(msg)
-        time.sleep(30)
+        time.sleep(20)
 
     def centralizar_ladders(self):
         try:
@@ -404,7 +404,11 @@ class Wagertool:
             )
             # print('TICKOFFSET localizado!')
         except:
-            logging.warning("TICKOFFSET desativado!!!")
+            print("TICKOFFSET desativado! Ative-o para prosseguir")
+            return False
+        
+        if self.janela not in gw.getAllTitles():
+            print('Tentando centralizar ladder na janela errada!')
             return False
 
         if self.centralizar_escada is not None:
@@ -417,20 +421,22 @@ class Wagertool:
                 pyautogui.position().y
             ):
                 pyautogui.click()  # evitar clicks fora da área certa
-                logging.info("centralizou ladder")
+                print("centralizou ladder...")
                 time.sleep(1)
-            else:
-                logging.error("Não sincronizou ladder! click fora da área correta")
+                return True
 
+        print("ERRO: Não centralizou ladder. Se estiver utilziando mouse talvez o click ocorreu fora da área correta")
+        return False
 
 def rotina(w):
     try:
-        w.centralizar_ladders()
+        centralizou_ladder = w.centralizar_ladders()
     except:
-        pass
+        centralizou_ladder = False
+
     w.captura_tela()
     w.extrai_valores()
-    if w.aovivo:
+    if centralizou_ladder and w.aovivo:
         try:
             atualizou_ladder = w.atualiza_informacoes_da_ladder()
         except TypeError:
@@ -443,7 +449,7 @@ def rotina(w):
                 float(list(w.ladder)[0]) + float(list(w.ladder)[-1])
             ) / 2
 
-            if media_odds_ladder <= 1.3:  # migalha
+            if media_odds_ladder <= 1.35:  # migalha
                 odd = w.migalha()
                 print(f"Migalinha: {odd}")
                 # if odd == 'media dinheiro em back é maior q em lay':
@@ -451,7 +457,7 @@ def rotina(w):
                 if odd in w.ladder.keys():
                     w.entrada(odd=odd, tipo="lay")
 
-            elif media_odds_ladder > 2 and media_odds_ladder <= 7:  # migalha
+            elif media_odds_ladder > 1.80 and media_odds_ladder <= 7:  # migalha
                 odd = w.scalping_under_acima_2_20()
                 print(f"Scalping Under: {odd}")
                 if odd in w.ladder.keys():
