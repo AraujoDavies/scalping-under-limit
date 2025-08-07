@@ -20,6 +20,10 @@ entrada sempre com **responsabilidade**
 
 Seguir imagens do diretório `imgs`
 
+Uma janela por cima da outra por conta do click no cashout
+
+>>> Sempre faça uma entrada com stake teste para verificar se o mercado não está duplicando a saída
+
 # Resultados...
 
 Será q deu GREEN ?? 👀

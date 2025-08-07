@@ -3,7 +3,7 @@ import os
 import shutil
 import time
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import cv2
 import easyocr
@@ -40,6 +40,7 @@ class Wagertool:
         self.odds_lay = []  # lista odd atual para lay + 3 pra baixo
         self.back_eixo_x = 0  # ref para clicar no back
         self.lay_eixo_x = 0  # ref para clicar no lay
+        self.janela_em_espera = {} # armazena janelas q estão em estado de espera!
 
         self.janelas = [] # armazena todas ladders abertas
         if os.path.exists("./debug_screen") is False:
@@ -86,6 +87,7 @@ class Wagertool:
             return False
 
         pyautogui.press('l')
+        pyautogui.moveTo(wtool.width, 5) # sai da área da ladder para evitar falha na extração do pl
         # coordenadas da janela
 
         # Captura apenas a área da janela usando mss
@@ -112,6 +114,7 @@ class Wagertool:
         """
         self.ladder = {'info': {}, 'odd': {}}  # reseta ladder antes de atualizar os resultados
         self.ladder['info']['status'] = "DESCONHECIDO" # "AO VIVO", "FECHADO", "SUSPENSO", 
+        self.ladder['info']['valor_pl'] = 1
 
         # Carregar imagem original colorida
         img = cv2.imread("./imgs/captura_janela.png")
@@ -137,6 +140,20 @@ class Wagertool:
 
         for index, result in enumerate(self.results):
             bbox, text, conf = result
+
+            if 'FAVOR' in text:
+                try:
+                    self.ladder['info']['valor_pl'] = float(self.results[index - 1][1].replace(',', '.'))
+                except:
+                    logging.error('Falha ao setar o valor_pl')
+
+            if 'Menu' in text:
+                try:
+                    self.ladder['info']['valor_stake'] = float(self.results[index + 1][1].replace(',', '.'))
+                except:
+                    self.ladder['info']['valor_stake'] = self.ladder['info']['valor_pl']
+                    logging.error('Falha ao setar o valor_stake')
+
             if "AO VIVO" in text or "FECHADO" in text or "SUSPENSO" in text:
                 self.ladder['info']['status'] = text
             # print(text)
@@ -318,7 +335,7 @@ class Wagertool:
         ):
             pyautogui.click()  # evitar clicks fora da área certa
             odd = odd.replace('.', '_')
-            shutil.copy('./imgs/captura_janela.png', f'./entradas/{datetime.now().strftime(f"{tipo}_{odd}_%H%M%S.png")}')
+            shutil.copy('./imgs/captura_janela.png', f'./entradas/{datetime.now().strftime(f"%H%M%S_{tipo}_{odd}.png")}')
 
         # cancela entradas propostas antes
         if tipo == "back":
@@ -332,10 +349,14 @@ class Wagertool:
         try:
             cashout = pyautogui.locateOnScreen("./imgs/cashout.jpg", confidence=0.8)
             pyautogui.click(cashout)  # evitar clicks fora da área certa
-            time.sleep(1)
-            pyautogui.press("c")
-            pyautogui.press("z") # removo apostas propostas
+            time.sleep(2)
             print('CASHOUT...')
+            try:
+                sim = pyautogui.locateOnScreen("./imgs/cashout_sim.jpg", confidence=0.8)
+                pyautogui.click(sim)  # evitar clicks fora da área certa
+                print('CASHOUT SIM!!')
+            except:
+                pass
         except:
             print('Não foi possível fazer o CASHOUT')
 
@@ -359,7 +380,6 @@ class Wagertool:
         range_odd = float(self.odds_back[0])
         range_odd = range_odd <= 1.2
         if range_odd is False:
-            self.click_cashout()
             return f"Range de odd fora: {self.odds_back[0]} e {self.odds_lay[0]}"
 
         if self.gap > 1:
@@ -400,7 +420,6 @@ class Wagertool:
                 return log_msg
 
             print(log_msg)
-            logging.info(log_msg)
             return odd_migalha
 
         return "media dinheiro em back é maior q em lay"
@@ -425,7 +444,6 @@ class Wagertool:
         range_odd = float(self.odds_back[0])
         range_odd = range_odd >= 2.2 and range_odd < 6
         if range_odd is False:
-            self.click_cashout()
             return f"Range de odd fora do Scalping Under Limit: {self.odds_back[0]} e {self.odds_lay[0]}"
 
         if self.gap > 3:
@@ -448,7 +466,6 @@ class Wagertool:
                 if peso_dinheiro_back[i] > media_dinheiro_back * 0.15:
                     log_msg = f"Scalping 2.2 (1) Propondo preço a ODD de @{self.odds_back[i]}"
                     print(log_msg)
-                    logging.info(log_msg)
                     return self.odds_back[i]
 
         # 2° CENÁRIO: primeira odd do lay vazia E media do dinheiro em back pelo menos 3 vezes maior q lay E as duas últimas odds do back são maiores q 0 ?
@@ -463,21 +480,55 @@ class Wagertool:
                 f"Scalping 2.2 (2) Propondo preço a ODD de @{self.odds_back[-3]}"
             )
             print(log_msg)
-            logging.info(log_msg)
             return self.odds_back[-3]
 
         return "Não encontrou odd para propor"
+    
+    def schedular_cashout(self, janela):
+        pl = self.ladder['info']['valor_pl']
+        stake = self.ladder['info']['valor_stake']
+        pl_percentual = (pl / stake) * 100
+        if pl_percentual < 0:
+            pl_percentual *= -1
+
+        if pl_percentual > 20: # pl_percentual > 20% da stake é pq ta com um baita lucro/red ou está dentro do mercado
+            prox = datetime.now() + timedelta(minutes=1)
+            self.janela_em_espera[janela] = {'proxima_execucao': prox, 'motivo': 'Gelo - Cashout solicitado (possível entrada em andamento)'}
+
+        print(f'pl percentual {pl}/{stake}: {pl_percentual}%')
+
 
 w = Wagertool()
 print('START!!')
+
+# self = w
+# import sys
+# sys.exit() # debug
+
+# w.extrai_valores()
+# pl = self.ladder['info']['valor_pl']
+# stake = self.ladder['info']['valor_stake']
+# pl_percentual = (pl / stake) * 100
+# if pl_percentual < 0:
+#     pl_percentual *= -1
+# print(f'pl percentual {pl}/{stake}: {pl_percentual}%')
 
 while True:
     time.sleep(1)
     w.atualizar_qt_janelas()
     for janela in w.janelas:
+        fazer_cashout = False
         print(f'{datetime.now().strftime("%H:%M")} - {janela}')
-        # import sys
-        # sys.exit() # debug
+        if janela in w.janela_em_espera.keys():
+            if datetime.now() <= w.janela_em_espera[janela]['proxima_execucao']:
+                log_msg = f'{janela}: mercado não será analisado: {w.janela_em_espera[janela]["motivo"]}'
+                # print(log_msg)
+                continue
+            else: # se passou a data de freeze, ai pode rodar
+                log_msg = f'Libera mercado: {janela} ({w.janela_em_espera[janela]["motivo"]})'
+                logging.info(log_msg)
+                print(log_msg)
+                fazer_cashout = True
 
         if w.captura_janela(janela) == True:
             try:
@@ -493,7 +544,11 @@ while True:
                     print(f'Mercado encerrado! ladder fechada!')
                     wtool = gw.getWindowsWithTitle(janela)[0]
                     wtool.close()
-                print(w.ladder['info']['status'])
+                elif w.ladder['info']['status'] == 'SUSPENSO':
+                    prox = datetime.now() + timedelta(minutes=1)
+                    w.janela_em_espera[janela] = {'proxima_execucao': prox, 'motivo': 'Gelo em mercado suspenso'}
+                else:
+                    print(w.ladder['info']['status'])
                 continue
 
             try:
@@ -501,21 +556,40 @@ while True:
             except TypeError:
                 print("Não foi possível atualizar a ladder...")
                 continue
-            
+
+            if fazer_cashout: # voltou da suspensão entao faça cashout 
+                logging.info(f'{janela}: Fazendo cashout.')
+                w.click_cashout()
+                w.janela_em_espera.pop(janela)
+            else: # se janela não está na lista de cashout, verifique
+                w.schedular_cashout(janela) 
+
             if w.ladder['odd'] == {}:
                 print('Mercado sem dinheiro na ladder...')
+                prox = datetime.now() + timedelta(minutes=2)
+                w.janela_em_espera[janela] = {'proxima_execucao': prox, 'motivo': 'Sem dinheiro na ladder.'}
                 continue
+
             # direcionar mercado para uma estratégia apenas
             media_odds_ladder = (
                 float(list(w.ladder['odd'])[0]) + float(list(w.ladder['odd'])[-1])
             ) / 2
 
+            incluir_status_espera = [
+                'Range de odd fora', 
+                'GAP maior q o esperado', 
+                'Estratégia não pode ser feita no mercado'
+            ]
+
             if media_odds_ladder <= 1.35:  # migalha
                 print("Estratégia selecionada: Migalinha")
                 odd = w.migalha()
                 print(odd)
-                # if odd == 'media dinheiro em back é maior q em lay':
-                #     shutil.copy('./imgs/captura_janela.png', f'./debug_screen/{datetime.now().strftime("migalha_%d%m_%H%M%S.png")}')
+                for status in incluir_status_espera:
+                    if status in odd:
+                        prox = datetime.now() + timedelta(minutes=1)
+                        w.janela_em_espera[janela] = {'proxima_execucao': prox, 'motivo': status}
+
                 if odd in w.ladder['odd'].keys():
                     w.entrada(odd=odd, tipo="lay")
 
@@ -523,6 +597,11 @@ while True:
                 print("Estratégia selecionada: Scalping Under")
                 odd = w.scalping_under_acima_2_20()
                 print(odd)
+                for status in incluir_status_espera:
+                    if status in odd:
+                        prox = datetime.now() + timedelta(minutes=1)
+                        w.janela_em_espera[janela] = {'proxima_execucao': prox, 'motivo': status}
+
                 if odd in w.ladder['odd'].keys():
                     w.entrada(odd=odd, tipo="back")
             
